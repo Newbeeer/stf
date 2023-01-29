@@ -41,8 +41,8 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 
 | Model           | Checkpoint path                                              | FID  |             Options              |
 | --------------- | :----------------------------------------------------------- | :--: | :------------------------------: |
-| CIFAR-10-ncsn++ | [`stf/cifar10_ncsnpp/`](https://drive.google.com/file/d/1H4aMDHtL2_av9EaYUFHioHaEQcBCVrAu/view?usp=share_link) | 1.90 | `--cond=0 --arch=ncsnpp --stf=1` |
-| CIFAR-10-ddpm++ | [`stf/cifar10_ddpmpp/`](https://drive.google.com/file/d/1-tWzEr-cTMJSNOFtMHH2ZgO9wDhGBYSb/view?usp=sharing) | 1.92 | `--cond=0 --arch=ddpmpp --stf=1` |
+| CIFAR-10-ncsnpp | [`stf/cifar10_ncsnpp/`](https://drive.google.com/file/d/1H4aMDHtL2_av9EaYUFHioHaEQcBCVrAu/view?usp=share_link) | 1.90 | `--cond=0 --arch=ncsnpp --stf=1` |
+| CIFAR-10-ddpmpp | [`stf/cifar10_ddpmpp/`](https://drive.google.com/file/d/1-tWzEr-cTMJSNOFtMHH2ZgO9wDhGBYSb/view?usp=sharing) | 1.92 | `--cond=0 --arch=ddpmpp --stf=1` |
 
 
 
