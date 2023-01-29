@@ -16,7 +16,7 @@ Diffusion models generate samples by reversing a fixed forward diffusion process
 
 ## Outline
 
-Our implementation is heavily rely on the [EDM](https://github.com/NVlabs/edm) repo. We highlight our modifications based on their original command lines for [training](#training-new-models-with-stf), [sampling and evaluation](#generate-&-evaluations). We also provide the instruction for [set-ups](#the-instructions-for-set-ups-from-the-[edm](https://github.com/NVlabs/edm) repo), such as requirements and dataset preparation, from EDM repo.
+Our implementation is heavily rely on the [EDM](https://github.com/NVlabs/edm) repo. We highlight our modifications based on their original command lines for [training](#training-new-models-with-stf), [sampling and evaluation](#generate-&-evaluations). We also provide the instruction for [set-ups](#the-instructions-for-set-ups-from-edm-repo), such as requirements and dataset preparation, from EDM repo.
 
 ## Training new models with STF
 
@@ -64,7 +64,7 @@ The results of each training run are saved to a newly created directory  `traini
 
 
 
-# The instructions for set-ups from the [EDM](https://github.com/NVlabs/edm) repo
+# The instructions for set-ups from EDM repo
 
 ## Requirements
 
