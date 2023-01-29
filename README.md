@@ -39,12 +39,14 @@ The results of each training run are saved to a newly created directory  `traini
 
 All checkpoints are provided in this [Google drive folder](https://drive.google.com/drive/folders/1v4u0OhZ0rxjgch51pZLySztMQATQQOeK?usp=sharing).
 
-| Model           | Checkpoint path           | FID  |             Options              |
-| --------------- | :------------------------ | :--: | :------------------------------: |
-| CIFAR-10-ncsn++ | [`stf/cifar10_ncsnpp/`]() | 1.90 | `--cond=0 --arch=ncsnpp --stf=1` |
-| CIFAR-10-ddpm++ | [`stf/cifar10_ddpmpp/`]() | 1.92 | `--cond=0 --arch=ddpmpp --stf=1` |
+| Model           | Checkpoint path                                              | FID  |             Options              |
+| --------------- | :----------------------------------------------------------- | :--: | :------------------------------: |
+| CIFAR-10-ncsn++ | [`stf/cifar10_ncsnpp/`](https://drive.google.com/file/d/1H4aMDHtL2_av9EaYUFHioHaEQcBCVrAu/view?usp=share_link) | 1.90 | `--cond=0 --arch=ncsnpp --stf=1` |
+| CIFAR-10-ddpm++ | [`stf/cifar10_ddpmpp/`]()                                    | 1.92 | `--cond=0 --arch=ddpmpp --stf=1` |
 
 
+
+- TODO: include CelebA $64\times 64$
 
 ## Generate & Evaluations
 
