@@ -1,6 +1,6 @@
 # Stable Target Field for Reduced Variance Score Estimation in Diffusion Models
 
-Pytorch implementation of the NeurIPS 2022 paper [Stable Target Field for Reduced Variance Score Estimation in Diffusion Models](https://openreview.net/forum?id=WmIwYTd0YTF), 
+Pytorch implementation of the ICLR 2023 paper [Stable Target Field for Reduced Variance Score Estimation in Diffusion Models](https://openreview.net/forum?id=WmIwYTd0YTF), 
 
 by [Yilun Xu](http://yilun-xu.com)\*, Shangyuan Tong*, [Tommi S. Jaakkola](http://people.csail.mit.edu/tommi/)
 
@@ -14,9 +14,11 @@ Diffusion models generate samples by reversing a fixed forward diffusion process
 
 
 
-Our implementation is heavily rely on the [EDM](https://github.com/NVlabs/edm) repo. Below we list our modification based on their original command lines for training, sampling and evaluation
+## Outline
 
-## Training new models
+Our implementation is heavily rely on the [EDM](https://github.com/NVlabs/edm) repo. We highlight our modifications based on their original command lines for [training](#training new models), sampling and evaluation.
+
+## Training new models with STF
 
 You can train new models using `train.py`. We provide example command line for CIFAR-10 unconditional generation:
 
@@ -35,7 +37,7 @@ The results of each training run are saved to a newly created directory  `traini
 
 
 
-The original EDM repo provide more dataset: FFHQ, AFHQv2, ImageNet-64. We did not test the performance of *STF* on these datasets due to limited computational resources. However, we believe that the *STF* technique can consistently improve the model across dataset. Please let us know if you have those resutls 😀
+**Sidenote: **The original EDM repo provide more dataset: FFHQ, AFHQv2, ImageNet-64. We did not test the performance of *STF* on these datasets due to limited computational resources. However, we believe that the *STF* technique can consistently improve the model across dataset. Please let us know if you have those resutls 😀
 
 ## Generate & Evaluations
 
