@@ -35,9 +35,16 @@ The above example uses the default batch size of 512 images (controlled by `--ba
 
 The results of each training run are saved to a newly created directory  `training-runs/exp_name` . The training loop exports network snapshots `training-state-*.pt`) at regular intervals (controlled by  `--dump`). The network snapshots can be used to generate images with `generate.py`, and the training states can be used to resume the training later on (`--resume`). Other useful information is recorded in `log.txt` and `stats.jsonl`. To monitor training convergence, we recommend looking at the training loss (`"Loss/loss"` in `stats.jsonl`) as well as periodically evaluating FID for `training-state-*.pt` using `generate.py` and `fid.py`.
 
-
-
 **Sidenote:** The original EDM repo provide more dataset: FFHQ, AFHQv2, ImageNet-64. We did not test the performance of *STF* on these datasets due to limited computational resources. However, we believe that the *STF* technique can consistently improve the model across datasets. Please let us know if you have those resutls 😀
+
+All checkpoints are provided in this [Google drive folder](https://drive.google.com/drive/folders/1v4u0OhZ0rxjgch51pZLySztMQATQQOeK?usp=sharing).
+
+| Model           | Checkpoint path           | FID  |             Options              |
+| --------------- | :------------------------ | :--: | :------------------------------: |
+| CIFAR-10-ncsn++ | [`stf/cifar10_ncsnpp/`]() | 1.90 | `--cond=0 --arch=ncsnpp --stf=1` |
+| CIFAR-10-ddpm++ | [`stf/cifar10_ddpmpp/`]() | 1.92 | `--cond=0 --arch=ddpmpp --stf=1` |
+
+
 
 ## Generate & Evaluations
 
