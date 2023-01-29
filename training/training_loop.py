@@ -94,8 +94,6 @@ def training_loop(
             misc.print_module_summary(net, [images, sigma, labels], max_nesting=2)
     # Setup optimizer.
     dist.print0('Setting up optimizer...')
-    loss_kwargs.D = D
-    loss_kwargs.N = net.img_channels * net.img_resolution * net.img_resolution
     loss_fn = dnnlib.util.construct_class_by_name(**loss_kwargs) # training.loss.(VP|VE|EDM)Loss
 
 
@@ -161,7 +159,7 @@ def training_loop(
 
                 # B * C * H * W
                 loss = loss_fn(net=ddp, images=batch_images, labels=batch_labels, augment_pipe=augment_pipe, stf=stf,
-                               align_precond=opts.align_precond, ref_images=images)
+                               ref_images=images)
                 training_stats.report('Loss/loss', loss)
                 dist.print0("loss:", loss.mean().item())
                 loss.sum().mul(loss_scaling / (batch_size // dist.get_world_size())).backward()

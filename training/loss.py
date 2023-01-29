@@ -90,7 +90,6 @@ class EDMLoss:
                 if augment_pipe is not None else (images, None)
             # update augmented original images
             ref_images[:len(y)] = y
-
             target = self.stf_scores(sigma.squeeze(), y+n, ref_images)
             target = target.view_as(y)
         else:
