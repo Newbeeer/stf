@@ -28,127 +28,42 @@ from torch_utils import misc
 def edm_sampler(
     net, latents, class_labels=None, randn_like=torch.randn_like,
     num_steps=18, sigma_min=0.002, sigma_max=80, rho=7,
-    S_churn=0, S_min=0, S_max=float('inf'), S_noise=0, alpha=0., pfgm=False,
-    pfgmv2=False, align=False, D=128, align_precond=False,
+    S_churn=0, S_min=0, S_max=float('inf'), S_noise=0,
 ):
 
-    if pfgm:
-        #print("rho:", rho)
-        # Adjust noise levels based on what's supported by the network.
-        N = net.img_channels * net.img_resolution * net.img_resolution
-        r_min = 0.55 / np.sqrt(N / (D - 2 - 1))
-        r_max = 2500 / np.sqrt(N / (D - 2 - 1))
 
-        # Time step discretization.
-        step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
-        t_steps = (r_max ** (1 / rho) + step_indices / (num_steps - 1) * (
-                    r_min ** (1 / rho) - r_max ** (1 / rho))) ** rho
-        t_steps = torch.cat([net.round_sigma(t_steps), torch.zeros_like(t_steps[:1])])  # t_N = 0
+    N = net.img_channels * net.img_resolution * net.img_resolution
+    # Adjust noise levels based on what's supported by the network.
+    sigma_min = max(sigma_min, net.sigma_min)
+    sigma_max = min(sigma_max, net.sigma_max)
 
+    # Time step discretization.
+    step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
+    t_steps = (sigma_max ** (1 / rho) + step_indices / (num_steps - 1) * (
+                sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho
+    t_steps = torch.cat([net.round_sigma(t_steps), torch.zeros_like(t_steps[:1])])  # t_N = 0
 
-        # samples_norm = torch.sqrt(latents) * r_max
-        # samples_norm = samples_norm.view(len(samples_norm), -1)
-        # # Uniformly sample the angle direction
-        # gaussian = torch.randn(len(latents), N).to(samples_norm.device)
-        # unit_gaussian = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
-        # # Radius times the angle direction
-        # init_samples = unit_gaussian * samples_norm
-        # latents = init_samples.reshape((len(latents), net.img_channels, net.img_resolution, net.img_resolution))
-        x_next = latents.to(torch.float64)
+    x_next = latents.to(torch.float64) * t_steps[0]
+    # Main sampling loop.
+    for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):  # 0, ..., N-1
 
-        # Main sampling loop.
-        for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):  # 0, ..., N-1
-            x_cur = x_next
+        x_cur = x_next
 
-            # Increase noise temporarily.
-            t_hat = net.round_sigma(t_cur)
-            x_hat = x_cur
+        # Increase noise temporarily.
+        gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
+        t_hat = net.round_sigma(t_cur + gamma * t_cur)
+        x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
+        # Euler step.
+        denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
+        d_cur = (x_hat - denoised) / t_hat
+        x_next = x_hat + (t_next - t_hat) * d_cur
 
-            # Euler step.
-            x_drift, z_drift = net(x_hat, t_hat, class_labels)
-            x_drift = x_drift.view(len(x_drift), -1).to(torch.float64)
-            z_drift = z_drift.to(torch.float64) * np.sqrt(D)
-            # Predicted normalized Poisson field
-            v = torch.cat([x_drift, z_drift[:, None]], dim=1)
-            dt_dz = 1 / (v[:, -1] + 1e-5)
-            dx_dt = v[:, :-1].view(len(x_drift), net.img_channels,
-                                   net.img_resolution,
-                                   net.img_resolution)
-            dx_dz = dx_dt * dt_dz.view(-1, *([1] * len(x_hat.size()[1:])))
-            d_cur = dx_dz
-            x_next = x_hat + (t_next - t_hat) * d_cur
+        # Apply 2nd order correction.
+        if i < num_steps - 1:
 
-            # Apply 2nd order correction.
-            if i < num_steps - 1:
-                x_drift_new, z_drift_new = net(x_next, t_next, class_labels)
-                x_drift_new = x_drift_new.view(len(x_drift_new), -1).to(torch.float64)
-                z_drift_new = z_drift_new.to(torch.float64) * np.sqrt(D)
-                # Predicted normalized Poisson field
-                v_new = torch.cat([x_drift_new, z_drift_new[:, None]], dim=1)
-                dt_dz_new = 1 / (v_new[:, -1] + 1e-5)
-                dx_dt_new = v_new[:, :-1].view(len(x_drift_new), net.img_channels,
-                                       net.img_resolution,
-                                       net.img_resolution)
-                dx_dz_new = dx_dt_new * dt_dz_new.view(-1, *([1] * len(x_next.size()[1:])))
-                d_prime = dx_dz_new
-                x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
-    else:
-        N = net.img_channels * net.img_resolution * net.img_resolution
-        # Adjust noise levels based on what's supported by the network.
-        sigma_min = max(sigma_min, net.sigma_min)
-        sigma_max = min(sigma_max, net.sigma_max)
-
-        if align:
-            sigma_min *= np.sqrt(1 + N/D)
-            sigma_max *= np.sqrt(1 + N/D)
-
-        #print("sigma max:", sigma_max, "sigma min:", sigma_min)
-        # Time step discretization.
-        step_indices = torch.arange(num_steps, dtype=torch.float64, device=latents.device)
-        t_steps = (sigma_max ** (1 / rho) + step_indices / (num_steps - 1) * (
-                    sigma_min ** (1 / rho) - sigma_max ** (1 / rho))) ** rho
-        t_steps = torch.cat([net.round_sigma(t_steps), torch.zeros_like(t_steps[:1])])  # t_N = 0
-
-        #t_steps = t_steps[:-2]
-        if pfgmv2:
-            x_next = latents.to(torch.float64)
-        else:
-            x_next = latents.to(torch.float64) * t_steps[0]
-        # Main sampling loop.
-        for i, (t_cur, t_next) in enumerate(zip(t_steps[:-1], t_steps[1:])):  # 0, ..., N-1
-
-            x_cur = x_next
-
-            gaussian = torch.randn((len(x_cur), N)).to(x_cur.device)
-            unit_gaussian = gaussian / torch.norm(gaussian, p=2, dim=1, keepdim=True)
-            unit_gaussian = unit_gaussian.view_as(x_cur)
-            #if i < 15:
-            x_cur += torch.randn_like(x_cur) * t_cur * alpha
-            # radius = x_cur.view(len(x_cur), -1).norm(p=2, dim=1) * alpha
-            # radius = radius.reshape((-1, 1, 1, 1))
-            # x_cur += unit_gaussian * radius
-
-            # norm = x_cur.view(len(x_cur), -1).norm(p=2, dim=1)/(t_cur * np.sqrt(N))
-            # print(f"i:{i}, t cur:{t_cur:.3f}, norm/\sigma * sqrt({N}):",
-            #      f"max: {max(norm):.3f}, min: {min(norm):.3f}")
-
-            # Increase noise temporarily.
-            gamma = min(S_churn / num_steps, np.sqrt(2) - 1) if S_min <= t_cur <= S_max else 0
-            t_hat = net.round_sigma(t_cur + gamma * t_cur)
-            x_hat = x_cur + (t_hat ** 2 - t_cur ** 2).sqrt() * S_noise * randn_like(x_cur)
-            # Euler step.
-
-            denoised = net(x_hat, t_hat, class_labels).to(torch.float64)
-            d_cur = (x_hat - denoised) / t_hat
-            x_next = x_hat + (t_next - t_hat) * d_cur
-
-            # Apply 2nd order correction.
-            if i < num_steps - 1:
-
-                denoised = net(x_next, t_next, class_labels).to(torch.float64)
-                d_prime = (x_next - denoised) / t_next
-                x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
-    #print("mean final norm:", x_next.reshape((len(x_next), -1)).norm(p=2, dim=1).mean(), x_next.shape)
+            denoised = net(x_next, t_next, class_labels).to(torch.float64)
+            d_prime = (x_next - denoised) / t_next
+            x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
     return x_next
 
 #----------------------------------------------------------------------------
@@ -282,38 +197,6 @@ class StackedRandomGenerator:
         assert size[0] == len(self.generators)
         return torch.stack([torch.randn(size[1:], generator=gen, **kwargs) for gen in self.generators])
 
-    def rand_beta_prime(self, size, N=3072, D=128, **kwargs):
-        # sample from beta_prime (N/2, D/2)
-        # print(f"N:{N}, D:{D}")
-        assert size[0] == len(self.seeds)
-        latent_list = []
-        beta_gen = Beta(torch.FloatTensor([N / 2.]), torch.FloatTensor([D / 2.]))
-        for seed in self.seeds:
-            torch.manual_seed(seed)
-            sample_norm = beta_gen.sample().to(kwargs['device']).double()
-            # inverse beta distribution
-            inverse_beta = sample_norm / (1-sample_norm)
-            if kwargs['pfgm']:
-                r_max = 2500 / np.sqrt(N / (D - 2 - 1))
-                sample_norm = torch.sqrt(inverse_beta) * r_max
-            elif kwargs['pfgmv2']:
-                if N < 256 * 256 * 3:
-                    sigma_max = 80
-                else:
-                    raise NotImplementedError
-
-                if kwargs['align']:
-                    sigma_max *= np.sqrt(1 + N/D)
-                sample_norm = torch.sqrt(inverse_beta) * sigma_max * np.sqrt(D)
-
-            gaussian = torch.randn(N).to(sample_norm.device)
-            unit_gaussian = gaussian / torch.norm(gaussian, p=2)
-            init_sample = unit_gaussian * sample_norm
-            latent_list.append(init_sample.reshape((1, *size[1:])))
-
-        latent = torch.cat(latent_list, dim=0)
-        return latent
-
     def randn_like(self, input):
         return self.randn(input.shape, dtype=input.dtype, layout=input.layout, device=input.device)
 
@@ -356,7 +239,6 @@ def parse_int_list(s):
 @click.option('--S_min', 'S_min',          help='Stoch. min noise level', metavar='FLOAT',                          type=click.FloatRange(min=0), default=0, show_default=True)
 @click.option('--S_max', 'S_max',          help='Stoch. max noise level', metavar='FLOAT',                          type=click.FloatRange(min=0), default=0, show_default=True)
 @click.option('--S_noise', 'S_noise',      help='Stoch. noise inflation', metavar='FLOAT',                          type=float, default=0, show_default=True)
-@click.option('--alpha', 'alpha',          help='noise norm', metavar='FLOAT',                          type=click.FloatRange(min=0), default=0, show_default=True)
 @click.option('--ckpt', 'ckpt',      help='begin ckpt', metavar='INT',                          type=int, default=0, show_default=True)
 @click.option('--resume', 'resume',      help='resume ckpt', metavar='INT',                          type=int, default=None, show_default=True)
 @click.option('--end_ckpt', 'end_ckpt',      help='end ckpt', metavar='INT',                          type=int, default=100000000, show_default=True)
@@ -365,16 +247,9 @@ def parse_int_list(s):
 @click.option('--disc', 'discretization',  help='Ablate time step discretization {t_i}', metavar='vp|ve|iddpm|edm', type=click.Choice(['vp', 've', 'iddpm', 'edm']))
 @click.option('--schedule',                help='Ablate noise schedule sigma(t)', metavar='vp|ve|linear',           type=click.Choice(['vp', 've', 'linear']))
 @click.option('--scaling',                 help='Ablate signal scaling s(t)', metavar='vp|none',                    type=click.Choice(['vp', 'none']))
-@click.option('--edm',          help='load edm model', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--use_pickle',          help='load model by pickle', metavar='BOOL',              type=bool, default=False, show_default=True)
 
-@click.option('--pfgm',          help='Train PFGM', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--pfgmv2',          help='Train PFGMv2', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--align',          help='Align', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--align_precond',          help='Align', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--aug_dim',             help='additional dimension', metavar='INT',                            type=click.IntRange(min=2), default=128, show_default=True)
 
-def main(ckpt, end_ckpt, outdir, subdirs, seeds, class_idx, max_batch_size, save_images, pfgm, pfgmv2, align, aug_dim, edm, use_pickle, device=torch.device('cuda'), **sampler_kwargs):
+def main(ckpt, end_ckpt, outdir, subdirs, seeds, class_idx, max_batch_size, save_images, device=torch.device('cuda'), **sampler_kwargs):
     """Generate random images using the techniques described in the paper
     "Elucidating the Design Space of Diffusion-Based Generative Models".
 
@@ -383,57 +258,31 @@ def main(ckpt, end_ckpt, outdir, subdirs, seeds, class_idx, max_batch_size, save
     \b
     # Generate 64 images and save them as out/*.png
     python generate.py --outdir=out --seeds=0-63 --batch=64 \\
-        --network=https://nvlabs-fi-cdn.nvidia.com/edm/pretrained/edm-cifar10-32x32-cond-vp.pkl
+        --save_images
 
     \b
     # Generate 1024 images using 2 GPUs
-    torchrun --standalone --nproc_per_node=2 generate.py --outdir=out --seeds=0-999 --batch=64 \\
-        --network=https://nvlabs-fi-cdn.nvidia.com/edm/pretrained/edm-cifar10-32x32-cond-vp.pkl
+    torchrun --standalone --nproc_per_node=2 generate.py --outdir=out --seeds=0-999 --batch=64
     """
     dist.init()
     num_batches = ((len(seeds) - 1) // (max_batch_size * dist.get_world_size()) + 1) * dist.get_world_size()
     all_batches = torch.as_tensor(seeds).tensor_split(num_batches)
     rank_batches = all_batches[dist.get_rank() :: dist.get_world_size()]
 
-    if not edm:
-        if use_pickle:
-            stats = glob.glob(os.path.join(outdir, "training-state-*.pkl"))
-        else:
-            stats = glob.glob(os.path.join(outdir, "training-state-*.pt"))
-    else:
-        stats = glob.glob(os.path.join(outdir, "network-snapshot-*.pkl"))
+    stats = glob.glob(os.path.join(outdir, "training-state-*.pt"))
     done_list = []
 
-    #outdir = '/scratch/ylxu/edm/3072000'
     for ckpt_dir in stats:
-        # ckpt_num = int(ckpt_dir[-9:-3])
-        # if ckpt_num < ckpt or ckpt_num > end_ckpt or ckpt_num in done_list:
-        #     continue
-        # ckpt_dir = outdir + ckpt_dir[-25:-3] + '.pkl'
         # Load network.
         dist.print0(f'Loading network from "{ckpt_dir}"...')
         # Rank 0 goes first.
         if dist.get_rank() != 0:
             torch.distributed.barrier()
 
-        # with dnnlib.util.open_url(network_pkl, verbose=(dist.get_rank() == 0)) as f:
-        #     net = pickle.load(f)['ema'].to(device)
+        data = torch.load(ckpt_dir, map_location=torch.device('cpu'))
+        net = data['ema'].eval().to(device)
+        ckpt_num = int(ckpt_dir[-9:-3])
 
-        if edm:
-            with dnnlib.util.open_url(ckpt_dir, verbose=(dist.get_rank() == 0)) as f:
-                net = pickle.load(f)['ema'].to(device)
-            ckpt_num = 0
-        else:
-            if use_pickle:
-                with dnnlib.util.open_url(ckpt_dir, verbose=(dist.get_rank() == 0)) as f:
-                    net = pickle.load(f)['ema'].to(device)
-                    ckpt_num = int(ckpt_dir[-10:-4])
-            else:
-                data = torch.load(ckpt_dir, map_location=torch.device('cpu'))
-                net = data['ema'].eval().to(device)
-                ckpt_num = int(ckpt_dir[-9:-3])
-
-            assert net.D == aug_dim
 
         if seeds[-1] > 49999 and seeds[-1] <= 99999:
             temp_dir = os.path.join(outdir, f'ckpt_2_{ckpt_num:06d}')
@@ -446,9 +295,9 @@ def main(ckpt, end_ckpt, outdir, subdirs, seeds, class_idx, max_batch_size, save
         if dist.get_rank() == 0:
             torch.distributed.barrier()
 
-        if not edm:
-            if ckpt_num < ckpt or ckpt_num > end_ckpt or ckpt_num in done_list:
-                continue
+
+        if ckpt_num < ckpt or ckpt_num > end_ckpt or ckpt_num in done_list:
+            continue
         if os.path.exists(temp_dir) and not save_images:
             continue
 
@@ -460,20 +309,10 @@ def main(ckpt, end_ckpt, outdir, subdirs, seeds, class_idx, max_batch_size, save
             if batch_size == 0:
                 continue
 
-            N = net.img_channels * net.img_resolution * net.img_resolution
             # Pick latents and labels.
             rnd = StackedRandomGenerator(device, batch_seeds)
-            if pfgm or pfgmv2:
-                latents = rnd.rand_beta_prime([batch_size, net.img_channels, net.img_resolution, net.img_resolution],
-                                    N=N,
-                                    D=aug_dim,
-                                    pfgm=pfgm,
-                                    pfgmv2=pfgmv2,
-                                    align=align,
-                                    device=device)
-            else:
-                latents = rnd.randn([batch_size, net.img_channels, net.img_resolution, net.img_resolution],
-                                    device=device)
+            latents = rnd.randn([batch_size, net.img_channels, net.img_resolution, net.img_resolution],
+                                device=device)
             class_labels = None
             if net.label_dim:
                 class_labels = torch.eye(net.label_dim, device=device)[
@@ -487,8 +326,7 @@ def main(ckpt, end_ckpt, outdir, subdirs, seeds, class_idx, max_batch_size, save
             have_ablation_kwargs = any(x in sampler_kwargs for x in ['solver', 'discretization', 'schedule', 'scaling'])
             sampler_fn = ablation_sampler if have_ablation_kwargs else edm_sampler
             with torch.no_grad():
-                images = sampler_fn(net, latents, class_labels, randn_like=rnd.randn_like,
-                                pfgm=pfgm, pfgmv2=pfgmv2, D=aug_dim, align=align, **sampler_kwargs)
+                images = sampler_fn(net, latents, class_labels, randn_like=rnd.randn_like, **sampler_kwargs)
 
             if save_images:
                 # save a small batch of images
@@ -504,7 +342,6 @@ def main(ckpt, end_ckpt, outdir, subdirs, seeds, class_idx, max_batch_size, save
 
             for seed, image_np in zip(batch_seeds, images_np):
 
-                #image_dir = os.path.join(temp_dir, f'{seed - seed % 1000:06d}') if subdirs else outdir
                 image_dir = os.path.join(temp_dir, f'{seed - seed % 1000:06d}')
                 os.makedirs(image_dir, exist_ok=True)
                 image_path = os.path.join(image_dir, f'{seed:06d}.png')

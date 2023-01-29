@@ -92,22 +92,6 @@ def calculate_fid_from_inception_stats(mu, sigma, mu_ref, sigma_ref):
 @click.group()
 def main():
     """Calculate Frechet Inception Distance (FID).
-
-    Examples:
-
-    \b
-    # Generate 50000 images and save them as fid-tmp/*/*.png
-    torchrun --standalone --nproc_per_node=1 generate.py --outdir=fid-tmp --seeds=0-49999 --subdirs \\
-        --network=https://nvlabs-fi-cdn.nvidia.com/edm/pretrained/edm-cifar10-32x32-cond-vp.pkl
-
-    \b
-    # Calculate FID
-    torchrun --standalone --nproc_per_node=1 fid.py calc --images=fid-tmp \\
-        --ref=https://nvlabs-fi-cdn.nvidia.com/edm/fid-refs/cifar10-32x32.npz
-
-    \b
-    # Compute dataset reference statistics
-    python fid.py ref --data=datasets/my-dataset.zip --dest=fid-refs/my-dataset.npz
     """
 
 #----------------------------------------------------------------------------
@@ -121,10 +105,6 @@ def main():
 @click.option('--end_ckpt',                 help='begin ckpt', metavar='INT', type=int, default=1000000, show_default=True)
 @click.option('--batch',                help='Maximum batch size', metavar='INT',                   type=click.IntRange(min=1), default=64, show_default=True)
 @click.option('--gen_seed',                help='generate seeds', metavar='INT',                   type=click.IntRange(min=1), default=1, show_default=True)
-@click.option('--steps',          help='load varying steps', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--alpha',          help='load varying alpha', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--prune',          help='load varying alpha', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--quant',          help='load varying alpha', metavar='BOOL',              type=bool, default=False, show_default=True)
 
 def calc(image_path, ref_path, num_expected, seed, ckpt, end_ckpt, batch, gen_seed, steps, alpha, prune, quant):
     """Calculate FID for a given set of images."""
@@ -140,24 +120,10 @@ def calc(image_path, ref_path, num_expected, seed, ckpt, end_ckpt, batch, gen_se
     print("seed config:", gen_seed)
     if gen_seed == 1:
         # 0 ~ 49999
-        if steps:
-            stats = glob.glob(os.path.join(image_path, "ckpt_[0-9]*_steps_[0-9]*"))
-        elif alpha:
-            stats = glob.glob(os.path.join(image_path, "ckpt_[0-9]*_alpha_0.[0-9]*"))
-        elif prune:
-            stats = glob.glob(os.path.join(image_path, "ckpt_[0-9]*_prune_0.[0-9]*"))
-        elif quant:
-            stats = glob.glob(os.path.join(image_path, "ckpt_[0-9]*_quant_[0-9]*"))
-        else:
-            stats = glob.glob(os.path.join(image_path, "ckpt_[0-9]*"))
+        stats = glob.glob(os.path.join(image_path, "ckpt_[0-9]*"))
     elif gen_seed == 2:
         # 50000 ~ 99999
-        if prune:
-            stats = glob.glob(os.path.join(image_path, "ckpt_2_[0-9]*_prune_0.[0-9]*"))
-        elif quant:
-            stats = glob.glob(os.path.join(image_path, "ckpt_2_[0-9]*_quant_[0-9]*"))
-        else:
-            stats = glob.glob(os.path.join(image_path, "ckpt_2_*"))
+        stats = glob.glob(os.path.join(image_path, "ckpt_2_*"))
     elif gen_seed == 3:
         # 100000 ~ 149999
         stats = glob.glob(os.path.join(image_path, "ckpt_3_*"))
@@ -174,7 +140,6 @@ def calc(image_path, ref_path, num_expected, seed, ckpt, end_ckpt, batch, gen_se
                 continue
                 ckpt_num = ckpt_num[1:]
             ckpt_num = int(ckpt_num)
-            # print(ckpt_num)
             if ckpt_num < ckpt or ckpt_num > end_ckpt or ckpt_num in done_list:
                 continue
 

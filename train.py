@@ -46,11 +46,6 @@ def parse_int_list(s):
 @click.option('--name',          help='Path to the rundir (enforce)', metavar='ZIP|DIR',                     type=str, default=None)
 @click.option('--cond',          help='Train class-conditional model', metavar='BOOL',              type=bool, default=False, show_default=True)
 @click.option('--stf',          help='Train stable target field model', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--pfgm',          help='Train PFGM', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--small',          help='small network', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--align',          help='field align', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--align_precond',          help='align precond (dont use!) ', metavar='BOOL',              type=bool, default=False, show_default=True)
-@click.option('--pfgmv2',          help='Train PFGM++', metavar='BOOL',              type=bool, default=False, show_default=True)
 @click.option('--arch',          help='Network architecture', metavar='ddpmpp|ncsnpp|adm',          type=click.Choice(['ddpmpp', 'ncsnpp', 'adm']), default='ddpmpp', show_default=True)
 @click.option('--precond',       help='Preconditioning & loss function', metavar='vp|ve|edm',       type=click.Choice(['vp', 've', 'edm']), default='edm', show_default=True)
 
@@ -58,7 +53,6 @@ def parse_int_list(s):
 @click.option('--duration',      help='Training duration', metavar='MIMG',       type=click.FloatRange(min=0, min_open=True), default=200, show_default=True)
 @click.option('--rbatch', help='Total reference batch size', metavar='INT',  type=click.IntRange(min=1), default=4096, show_default=True)
 @click.option('--batch',         help='Total batch size', metavar='INT',                            type=click.IntRange(min=1), default=512, show_default=True)
-@click.option('--aug_dim',             help='additional dimension', metavar='INT',                            type=click.IntRange(min=2), default=128, show_default=True)
 @click.option('--batch-gpu',     help='Limit batch size per GPU', metavar='INT',                    type=click.IntRange(min=1))
 @click.option('--cbase',         help='Channel multiplier  [default: varies]', metavar='INT',       type=int)
 @click.option('--cres',          help='Channels per resolution  [default: varies]', metavar='LIST', type=parse_int_list)
@@ -163,7 +157,7 @@ def main(**kwargs):
     # Training options.
     c.total_kimg = max(int(opts.duration * 1000), 1)
     c.ema_halflife_kimg = int(opts.ema * 1000)
-    c.update(rbatch=opts.rbatch, stf=opts.stf, pfgm=opts.pfgm, D=opts.aug_dim, pfgmv2=opts.pfgmv2, align=opts.align)
+    c.update(rbatch=opts.rbatch, stf=opts.stf)
     c.update(batch_size=opts.batch, batch_gpu=opts.batch_gpu)
     c.update(loss_scaling=opts.ls, cudnn_benchmark=opts.bench)
     c.update(kimg_per_tick=opts.tick, snapshot_ticks=opts.snap, state_dump_ticks=opts.dump)
