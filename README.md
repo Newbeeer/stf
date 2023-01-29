@@ -37,7 +37,7 @@ The results of each training run are saved to a newly created directory  `traini
 
 
 
-**Sidenote:** The original EDM repo provide more dataset: FFHQ, AFHQv2, ImageNet-64. We did not test the performance of *STF* on these datasets due to limited computational resources. However, we believe that the *STF* technique can consistently improve the model across dataset. Please let us know if you have those resutls 😀
+**Sidenote:** The original EDM repo provide more dataset: FFHQ, AFHQv2, ImageNet-64. We did not test the performance of *STF* on these datasets due to limited computational resources. However, we believe that the *STF* technique can consistently improve the model across datasets. Please let us know if you have those resutls 😀
 
 ## Generate & Evaluations
 
@@ -64,9 +64,9 @@ The results of each training run are saved to a newly created directory  `traini
 
 
 
-# The instructions for set-ups from EDM repo
+## The instructions for set-ups from EDM repo
 
-## Requirements
+### Requirements
 
 - Linux and Windows are supported, but we recommend Linux for performance and compatibility reasons.
 - 1+ high-end NVIDIA GPU for sampling and 8+ GPUs for training. We have done all testing and development using V100 and A100 GPUs.
@@ -79,7 +79,7 @@ The results of each training run are saved to a newly created directory  `traini
   - Ensure you have correctly installed the [NVIDIA container runtime](https://docs.docker.com/config/containers/resource_constraints/#gpu).
   - Use the [provided Dockerfile](https://github.com/NVlabs/edm/blob/main/Dockerfile) to build an image with the required library dependencies.
 
-## Preparing datasets
+### Preparing datasets
 
 Datasets are stored in the same format as in [StyleGAN](https://github.com/NVlabs/stylegan3): uncompressed ZIP archives containing uncompressed PNG files and a metadata file `dataset.json` for labels. Custom datasets can be created from a folder containing images; see [`python dataset_tool.py --help`](./docs/dataset-tool-help.txt) for more information.
 
