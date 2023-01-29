@@ -37,7 +37,7 @@ The results of each training run are saved to a newly created directory  `traini
 
 
 
-**Sidenote: **The original EDM repo provide more dataset: FFHQ, AFHQv2, ImageNet-64. We did not test the performance of *STF* on these datasets due to limited computational resources. However, we believe that the *STF* technique can consistently improve the model across dataset. Please let us know if you have those resutls 😀
+**Sidenote:** The original EDM repo provide more dataset: FFHQ, AFHQv2, ImageNet-64. We did not test the performance of *STF* on these datasets due to limited computational resources. However, we believe that the *STF* technique can consistently improve the model across dataset. Please let us know if you have those resutls 😀
 
 ## Generate & Evaluations
 
