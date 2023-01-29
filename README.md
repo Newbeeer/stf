@@ -22,11 +22,12 @@ Our implementation is built upon the [EDM](https://github.com/NVlabs/edm) repo. 
 
 You can train new models using `train.py`. We provide example command line for CIFAR-10 unconditional generation:
 
-```.bash
-torchrun --standalone --nproc_per_node=8 train.py --outdir=training-runs --name exp_name \
---data=datasets/cifar10-32x32.zip --cond=0 --arch=arch --stf=stf
+```zsh
+torchrun --standalone --nproc_per_node=8 train.py --outdir=training-runs --name=exp_name \
+--data=datasets/cifar10-32x32.zip --cond=0 --arch=arch --stf=stf  --rbatch=rbatch
 
 stf: use stable target field or not. options: 0 | 1
+rbatch: size of the reference batch
 exp_name: name of experiments 
 arch: model architectures. options: ncsnpp | ddpmpp
 ```
@@ -39,10 +40,10 @@ The results of each training run are saved to a newly created directory  `traini
 
 All checkpoints are provided in this [Google drive folder](https://drive.google.com/drive/folders/1v4u0OhZ0rxjgch51pZLySztMQATQQOeK?usp=sharing).
 
-| Model           | Checkpoint path                                              | FID  |             Options              |
-| --------------- | :----------------------------------------------------------- | :--: | :------------------------------: |
-| CIFAR-10-ncsnpp | [`stf/cifar10_ncsnpp/`](https://drive.google.com/file/d/1H4aMDHtL2_av9EaYUFHioHaEQcBCVrAu/view?usp=share_link) | 1.90 | `--cond=0 --arch=ncsnpp --stf=1` |
-| CIFAR-10-ddpmpp | [`stf/cifar10_ddpmpp/`](https://drive.google.com/file/d/1-tWzEr-cTMJSNOFtMHH2ZgO9wDhGBYSb/view?usp=sharing) | 1.92 | `--cond=0 --arch=ddpmpp --stf=1` |
+| Model           | Checkpoint path                                              | FID  |                    Options                     |
+| --------------- | :----------------------------------------------------------- | :--: | :--------------------------------------------: |
+| CIFAR-10-ncsnpp | [`stf/cifar10_ncsnpp/`](https://drive.google.com/file/d/1H4aMDHtL2_av9EaYUFHioHaEQcBCVrAu/view?usp=share_link) | 1.90 | `--cond=0 --arch=ncsnpp --stf=1 --rbatch 4096` |
+| CIFAR-10-ddpmpp | [`stf/cifar10_ddpmpp/`](https://drive.google.com/file/d/1-tWzEr-cTMJSNOFtMHH2ZgO9wDhGBYSb/view?usp=sharing) | 1.92 | `--cond=0 --arch=ddpmpp --stf=1 --rbatch 4096` |
 
 
 
