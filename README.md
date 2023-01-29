@@ -16,7 +16,7 @@ Diffusion models generate samples by reversing a fixed forward diffusion process
 
 ## Outline
 
-Our implementation is heavily rely on the [EDM](https://github.com/NVlabs/edm) repo. We highlight our modifications based on their original command lines for [training](#training-new-models-with-stf), [sampling and evaluation](#generate-&-evaluations). We also provide the instruction for [set-ups](#the-instructions-for-set-ups-from-edm-repo), such as requirements and dataset preparation, from EDM repo.
+Our implementation is built upon the [EDM](https://github.com/NVlabs/edm) repo. We highlight our modifications based on their original command lines for [training](#training-new-models-with-stf), [sampling and evaluation](#generate-&-evaluations). We also provide the instruction for [set-ups](#the-instructions-for-set-ups-from-edm-repo), such as requirements and dataset preparation, from EDM repo.
 
 ## Training new models with STF
 
@@ -42,7 +42,7 @@ All checkpoints are provided in this [Google drive folder](https://drive.google.
 | Model           | Checkpoint path                                              | FID  |             Options              |
 | --------------- | :----------------------------------------------------------- | :--: | :------------------------------: |
 | CIFAR-10-ncsn++ | [`stf/cifar10_ncsnpp/`](https://drive.google.com/file/d/1H4aMDHtL2_av9EaYUFHioHaEQcBCVrAu/view?usp=share_link) | 1.90 | `--cond=0 --arch=ncsnpp --stf=1` |
-| CIFAR-10-ddpm++ | [`stf/cifar10_ddpmpp/`]()                                    | 1.92 | `--cond=0 --arch=ddpmpp --stf=1` |
+| CIFAR-10-ddpm++ | [`stf/cifar10_ddpmpp/`](https://drive.google.com/file/d/1-tWzEr-cTMJSNOFtMHH2ZgO9wDhGBYSb/view?usp=sharing) | 1.92 | `--cond=0 --arch=ddpmpp --stf=1` |
 
 
 
