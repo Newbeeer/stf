@@ -39,7 +39,7 @@ if stf:
     # Set the target to the stable target for STF
     target = self.stf_targets(sigma.squeeze(), perturbed_samples, ref_images)
 else:
-    # Set the target to the clean data for diffusion models
+    # Set the target to the clean data in vanilla Denoising Score-matching
     target = y
 ## ======================================== ##
 loss = (D_yn - target) ** 2
