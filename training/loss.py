@@ -90,7 +90,7 @@ class EDMLoss:
                 if augment_pipe is not None else (images, None)
             # update augmented original images
             ref_images[:len(y)] = y
-            target = self.stf_scores(sigma.squeeze(), y+n, ref_images)
+            target = self.stf_targets(sigma.squeeze(), y+n, ref_images)
             target = target.view_as(y)
         else:
             target = y
@@ -98,22 +98,33 @@ class EDMLoss:
         loss = weight * ((D_yn - target) ** 2)
         return loss
 
-    def stf_scores(self, sigmas, perturbed_samples, samples_full):
+    def stf_targets(self, sigmas, perturbed_samples, ref):
+        """
 
+        Args:
+            sigmas: noisy levels
+            perturbed_samples: perturbed samples with perturbation kernel N(0, sigmas**2)
+            ref: the reference batch
+
+        Returns: stable target
+
+        """
         with torch.no_grad():
             perturbed_samples_vec = perturbed_samples.reshape((len(perturbed_samples), -1))
-            samples_full_vec = samples_full.reshape((len(samples_full), -1))
+            ref_vec = ref.reshape((len(ref), -1))
 
-            gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - samples_full_vec) ** 2,
+            gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - ref_vec) ** 2,
                                     dim=[-1])
             gt_distance = - gt_distance / (2 * sigmas.unsqueeze(1) ** 2)
+            # adding a constant to the log-weights to prevent numerical issue
             distance = - torch.max(gt_distance, dim=1, keepdim=True)[0] + gt_distance
-            distance = torch.exp(distance)
-            distance = distance[:, :, None]
+            distance = torch.exp(distance)[:, :, None]
+            # self-normalize the per-sample weight of reference batch
             weights = distance / (torch.sum(distance, dim=1, keepdim=True))
 
-            target = samples_full_vec.unsqueeze(0).repeat(len(perturbed_samples), 1, 1)
-            gt_direction = torch.sum(weights * target, dim=1)
-            return gt_direction
+            target = ref_vec.unsqueeze(0).repeat(len(perturbed_samples), 1, 1)
+            # calculate the stable targets with reference batch
+            stable_targets = torch.sum(weights * target, dim=1)
+            return stable_targets
 
 #----------------------------------------------------------------------------

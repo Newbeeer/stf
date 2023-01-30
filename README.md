@@ -16,7 +16,69 @@ Diffusion models generate samples by reversing a fixed forward diffusion process
 
 ## Outline
 
-Our implementation is built upon the [EDM](https://github.com/NVlabs/edm) repo. We highlight our modifications based on their original command lines for [training](#training-new-models-with-stf), [sampling and evaluation](#generate-&-evaluations). We also provide the instruction for [set-ups](#the-instructions-for-set-ups-from-edm-repo), such as requirements and dataset preparation, from EDM repo.
+Our implementation is built upon the [EDM](https://github.com/NVlabs/edm) repo. We first provide an (guidance)[#quick-adoptation] on how to quickly transfer from denoising score-matching objective to STF. We highlight our modifications based on their original command lines for [training](#training-new-models-with-stf), [sampling and evaluation](#generate-&-evaluations). We also provide the instruction for [set-ups](#the-instructions-for-set-ups-from-edm-repo), such as requirements and dataset preparation, from EDM repo.
+
+
+
+### Quick Adoptation
+
+Below we provide the guidance for how to quick apply STF to any existing diffusion models frameworks. The example we used is a simplified version of  [`loss.py`]([https://github.com/Newbeeer/stf/blob/13de0c799a37dd2f83108c1d7295aaf1e993dffe/training/loss.py#L78-L118) in this repo.
+
+The loss function of the **STF** or the **denoising score-matching** objective for diffusion models:
+
+```python
+rnd_normal = torch.randn([images.shape[0], 1, 1, 1], device=images.device)
+sigma = (rnd_normal * self.P_std + self.P_mean).exp()
+n = torch.randn_like(y) * sigma
+# perturbed the clean data y with Gaussian noise n
+perturbed_samples = y + n
+D_yn = net(perturbed_samples, sigma, labels)
+
+## === STF or Denoising Score-matching === ##
+if stf:
+    # Set the target to the stable target for STF
+    target = self.stf_targets(sigma.squeeze(), perturbed_samples, ref_images)
+else:
+    # Set the target to the clean data for diffusion models
+		target = y
+## ======================================== ##
+loss = (D_yn - target) ** 2
+```
+
+The **STF** function for calculating stable target in the EDM framework:
+
+```python
+def stf_targets(self, sigmas, perturbed_samples, ref):
+"""
+
+Args:
+sigmas: noisy levels
+perturbed_samples: perturbed samples with perturbation kernel N(0, sigmas**2)
+ref: the reference batch
+
+Returns: stable target
+
+"""
+with torch.no_grad():
+	perturbed_samples_vec = perturbed_samples.reshape((len(perturbed_samples), -1))
+	ref_vec = ref.reshape((len(ref), -1))
+
+	gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - ref_vec) ** 2, dim=[-1])
+	gt_distance = - gt_distance / (2 * sigmas.unsqueeze(1) ** 2)
+  
+  # adding a constant to the log-weights to prevent numerical issue
+	distance = - torch.max(gt_distance, dim=1, keepdim=True)[0] + gt_distance
+	distance = torch.exp(distance)[:, :, None]
+  # self-normalize the per-sample weight of reference batch
+	weights = distance / (torch.sum(distance, dim=1, keepdim=True))
+
+	target = ref_vec.unsqueeze(0).repeat(len(perturbed_samples), 1, 1)
+  # calculate the stable targets with reference batch
+	stable_targets = torch.sum(weights * target, dim=1)
+	return stable_targets
+```
+
+
 
 ## Training new models with STF
 
@@ -38,7 +100,7 @@ The results of each training run are saved to a newly created directory  `traini
 
 **Sidenote:** The original EDM repo provide more dataset: FFHQ, AFHQv2, ImageNet-64. We did not test the performance of *STF* on these datasets due to limited computational resources. However, we believe that the *STF* technique can consistently improve the model across datasets. Please let us know if you have those resutls 😀
 
-All checkpoints are provided in this [Google drive folder](https://drive.google.com/drive/folders/1v4u0OhZ0rxjgch51pZLySztMQATQQOeK?usp=sharing).
+All checkpoints are provided in this [Google drive folder](https://drive.google.com/drive/folders/1bTtRCkl31VP6KC71l5kvXCLE4NT5kVtu?usp=share_link).
 
 | Model           | Checkpoint path                                              | FID  |                    Options                     |
 | --------------- | :----------------------------------------------------------- | :--: | :--------------------------------------------: |
