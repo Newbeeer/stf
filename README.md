@@ -27,12 +27,15 @@ Below we provide the guidance for how to quick apply STF to any existing diffusi
 The loss function of the **STF** or the **denoising score-matching** objective for diffusion models:
 
 ```python
-rnd_normal = torch.randn([images.shape[0], 1, 1, 1], device=images.device)
-sigma = (rnd_normal * self.P_std + self.P_mean).exp()
-n = torch.randn_like(y) * sigma
+'''
+y: mini-batch clean images
+n: mini-batch noise
+ref_images: reference batch clean images
+'''
+
 # perturbed the clean data y with Gaussian noise n
 perturbed_samples = y + n
-D_yn = net(perturbed_samples, sigma, labels)
+D_yn = net(perturbed_samples, sigma)
 
 ## === STF or Denoising Score-matching === ##
 if stf:
