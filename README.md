@@ -61,21 +61,21 @@ Returns: stable target
 """
 with torch.no_grad():
   perturbed_samples_vec = perturbed_samples.reshape((len(perturbed_samples), -1))
-	ref_vec = ref.reshape((len(ref), -1))
+  ref_vec = ref.reshape((len(ref), -1))
 
-	gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - ref_vec) ** 2, dim=[-1])
-	gt_distance = - gt_distance / (2 * sigmas.unsqueeze(1) ** 2)
+  gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - ref_vec) ** 2, dim=[-1])
+  gt_distance = - gt_distance / (2 * sigmas.unsqueeze(1) ** 2)
   
   # adding a constant to the log-weights to prevent numerical issue
   distance = - torch.max(gt_distance, dim=1, keepdim=True)[0] + gt_distance
-	distance = torch.exp(distance)[:, :, None]
+  distance = torch.exp(distance)[:, :, None]
   # self-normalize the per-sample weight of reference batch
-	weights = distance / (torch.sum(distance, dim=1, keepdim=True))
+  weights = distance / (torch.sum(distance, dim=1, keepdim=True))
 
-	target = ref_vec.unsqueeze(0).repeat(len(perturbed_samples), 1, 1)
+  target = ref_vec.unsqueeze(0).repeat(len(perturbed_samples), 1, 1)
   # calculate the stable targets with reference batch
-	stable_targets = torch.sum(weights * target, dim=1)
-	return stable_targets
+  stable_targets = torch.sum(weights * target, dim=1)
+  return stable_targets
 ```
 
 
