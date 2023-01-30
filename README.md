@@ -16,11 +16,11 @@ Diffusion models generate samples by reversing a fixed forward diffusion process
 
 ## Outline
 
-Our implementation is built upon the [EDM](https://github.com/NVlabs/edm) repo. We first provide an (guidance)[#quick-adoptation] on how to quickly transfer from denoising score-matching objective to STF. We highlight our modifications based on their original command lines for [training](#training-new-models-with-stf), [sampling and evaluation](#generate-&-evaluations). We also provide the instruction for [set-ups](#the-instructions-for-set-ups-from-edm-repo), such as requirements and dataset preparation, from EDM repo.
+Our implementation is built upon the [EDM](https://github.com/NVlabs/edm) repo. We first provide an [guidance](#quick-adoptation) on how to quickly transfer from denoising score-matching objective to STF. We highlight our modifications based on their original command lines for [training](#training-new-models-with-stf), [sampling and evaluation](#generate-&-evaluations). We also provide the instruction for [set-ups](#the-instructions-for-set-ups-from-edm-repo), such as requirements and dataset preparation, from EDM repo.
 
 
 
-### Quick Adoptation
+## Quick Adoptation
 
 Below we provide the guidance for how to quick apply STF to any existing diffusion models frameworks. The example we used is a simplified version of  [`loss.py`]([https://github.com/Newbeeer/stf/blob/13de0c799a37dd2f83108c1d7295aaf1e993dffe/training/loss.py#L78-L118) in this repo.
 
