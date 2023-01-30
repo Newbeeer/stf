@@ -40,7 +40,7 @@ if stf:
     target = self.stf_targets(sigma.squeeze(), perturbed_samples, ref_images)
 else:
     # Set the target to the clean data for diffusion models
-		target = y
+    target = y
 ## ======================================== ##
 loss = (D_yn - target) ** 2
 ```
@@ -60,14 +60,14 @@ Returns: stable target
 
 """
 with torch.no_grad():
-	perturbed_samples_vec = perturbed_samples.reshape((len(perturbed_samples), -1))
+  perturbed_samples_vec = perturbed_samples.reshape((len(perturbed_samples), -1))
 	ref_vec = ref.reshape((len(ref), -1))
 
 	gt_distance = torch.sum((perturbed_samples_vec.unsqueeze(1) - ref_vec) ** 2, dim=[-1])
 	gt_distance = - gt_distance / (2 * sigmas.unsqueeze(1) ** 2)
   
   # adding a constant to the log-weights to prevent numerical issue
-	distance = - torch.max(gt_distance, dim=1, keepdim=True)[0] + gt_distance
+  distance = - torch.max(gt_distance, dim=1, keepdim=True)[0] + gt_distance
 	distance = torch.exp(distance)[:, :, None]
   # self-normalize the per-sample weight of reference batch
 	weights = distance / (torch.sum(distance, dim=1, keepdim=True))
