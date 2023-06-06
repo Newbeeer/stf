@@ -4,7 +4,7 @@ Pytorch implementation of the ICLR 2023 paper [Stable Target Field for Reduced V
 
 by [Yilun Xu](http://yilun-xu.com)\*, Shangyuan Tong*, [Tommi S. Jaakkola](http://people.csail.mit.edu/tommi/)
 
-
+[[Slide]({% if *include*.*paper*.*code-url* %},<a *href*="{{ *include*.*paper*.*code-url* }}">[Code]</a>{% endif %})]
 
 Diffusion models generate samples by reversing a fixed forward diffusion process. Despite already providing impressive empirical results, these diffusion models algorithms can be further improved by reducing the variance of the training targets in their denoising score-matching objective. We argue that the source of such variance lies in the handling of intermediate noise-variance scales, where multiple modes in the data affect the direction of reverse paths. We propose to remedy the problem by incorporating a reference batch which we use to calculate weighted conditional scores as more stable training targets. We show that the procedure indeed helps in the challenging intermediate regime by reducing (the trace of) the covariance of training targets. **The new stable targets can be seen as trading bias for reduced variance, where the bias vanishes with increasing reference batch size.** Empirically, we show that the new objective **improves the image quality, stability, and training speed** of various popular diffusion models across datasets with both general ODE and SDE solvers. When used in combination with state-of-the-art diffusion models (EDM (Karras et al., 2022)), our method yields a current **SOTA FID of 1.90** with 35 network evaluations on the unconditional CIFAR-10 generation task.
 
